@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gold Rush Extreme - Original Edition</title>
+    <style>
+        :root { --gold: #ffd700; --bg: #0f172a; --red: #ff4757; --success: #2ed573; }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Arial Black', sans-serif; overflow: hidden; touch-action: none; width: 100%; height: 100%; position: fixed; }
+        
+        /* হেডার স্ট্যাটাস */
+        .header { position: absolute; top: 0; width: 100%; height: 60px; background: rgba(0,0,0,0.85); display: flex; justify-content: space-around; align-items: center; z-index: 100; border-bottom: 2px solid #333; }
+        .stat-box { font-size: 22px; font-weight: bold; color: var(--gold); }
+
+        canvas { display: block; background: radial-gradient(circle, #1e293b 0%, #000 100%); }
+
+        .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.97); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 500; text-align: center; padding: 20px; }
+        
+        /* সার্ভার ও উইথড্র কার্ড */
+        .server-card { width: 90%; border-radius: 20px; padding: 20px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; border: 2px solid #334155; }
+        .active-server { border: 3px solid var(--success); background: rgba(46,204,113,0.15); animation: glowBounce 2s infinite; cursor: pointer; }
+        @keyframes glowBounce { 0%, 100% { transform: scale(1); box-shadow: 0 0 5px var(--success); } 50% { transform: scale(1.03); box-shadow: 0 0 20px var(--success); } }
+
+        #payoutBox { width: 90%; background: #000; border-radius: 15px; padding: 12px; margin-bottom: 15px; border: 1px solid #1e293b; height: 85px; overflow: hidden; }
+        .payout-item { display: flex; justify-content: space-between; align-items: center; animation: slideUp 0.5s ease; padding: 5px 0; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .redeem-card {
+            width: 92%; background: linear-gradient(145deg, #1e293b, #0f172a);
+            margin: 10px 0; padding: 25px; border-radius: 25px; border: 1px solid #334155;
+            display: flex; justify-content: space-between; align-items: center; position: relative;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.5);
+        }
+        .hot-tag { position: absolute; top: -12px; left: 20px; background: var(--red); color: white; font-size: 11px; padding: 4px 12px; border-radius: 6px; font-weight: bold; }
+        .card-price { color: var(--success); font-size: 30px; font-weight: 900; }
+
+        .btn { padding: 18px; margin: 10px; border: none; border-radius: 50px; cursor: pointer; font-size: 20px; font-weight: bold; width: 280px; box-shadow: 0 6px #000; }
+        .btn-play { background: var(--success); color: white; }
+        .btn-back { background: var(--red) !important; color: white; width: 180px; font-size: 16px; margin-top: 20px; box-shadow: 0 4px #800 !important; }
+
+        input { padding: 18px; width: 85%; border-radius: 15px; border: none; margin: 15px 0; text-align: center; font-size: 22px; color: #000; }
+        .hidden { display: none !important; }
+
+        /* রেজাল্ট পেজ এনিমেশন */
+        .result-score { font-size: 60px; color: var(--gold); margin: 20px 0; text-shadow: 0 0 20px var(--gold); }
+        .f-coin { position: absolute; font-size: 30px; animation: drop 3s linear forwards; z-index: 1000; }
+        @keyframes drop { from { transform: translateY(-10vh); } to { transform: translateY(110vh); } }
+
+        /* গোপন পলিসি স্টাইল */
+        .footer-terms { position: absolute; bottom: 10px; width: 100%; text-align: center; z-index: 600; }
+        .footer-terms a { color: #1e293b; font-size: 10px; text-decoration: none; font-family: sans-serif; }
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 25px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="stat-box">💰 <span id="coins">0</span></div>
+    <div class="stat-box">⭐ <span id="stars">0</span></div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="currencyPage" class="overlay">
+    <div style="background: #111827; padding: 25px; border-radius: 30px; width: 90%;">
+        <h2 style="color:var(--gold);">CHOOSE SERVER</h2>
+        <div class="server-card" style="opacity:0.3;">🇺🇸 Global ($) <small>FULL</small></div>
+        <div onclick="selectCurrency()" class="server-card active-server">
+            <div style="text-align:left;">
+                <b style="color:#fff; font-size: 18px;">🇧🇩 BD Taka (৳)</b><br>
+                <small style="color:var(--success);">RECOMMENDED</small>
+            </div>
+            <b style="font-size:30px; color: var(--success);">৳</b>
+        </div>
+    </div>
+    <div class="footer-terms"><a href="#" onclick="showPolicy()">Privacy Policy & Terms</a></div>
+</div>
+
+<div id="tutorialPage" class="overlay hidden">
+    <div style="background:#1e293b; padding:25px; border-radius:25px; border:2px solid var(--gold); width: 85%;">
+        <h2 style="color:var(--gold);">খেলার নিয়ম</h2>
+        <p>১. আঙুল দিয়ে **বাঁশের খাঁচাটি** সরান।</p>
+        <p>২. উপর থেকে পড়া **গোল্ড ও স্টার** ধরুন।</p>
+        <p>৩. স্টার জমিয়ে সরাসরি **বিকাশ বা নগদে** টাকা নিন।</p>
+        <button class="btn btn-play" style="width: 100%;" onclick="closeTutorial()">শুরু করুন</button>
+    </div>
+</div>
+
+<div id="menu" class="overlay hidden">
+    <h1 style="font-size:60px; color:var(--gold); margin:0;">GOLD RUSH</h1>
+    <button class="btn btn-play" onclick="startGame()">খেলুন</button>
+    <button class="btn" style="background:#f39c12;" onclick="showRedeem()">উইথড্র</button>
+</div>
+
+<div id="resultPage" class="overlay hidden">
+    <h2 style="color:var(--gold);">গেম শেষ!</h2>
+    <div class="result-score" id="resScore">0</div>
+    <div id="rainContainer"></div>
+    <button class="btn btn-play" onclick="startGame()">আবার খেলুন</button>
+    <button class="btn" style="background:#f39c12; width:180px;" onclick="showRedeem()">উইথড্র</button>
+</div>
+
+<div id="redeemPage" class="overlay hidden">
+    <div id="payoutBox"><div id="payoutList"></div></div>
+    <div style="width: 100%; overflow-y: auto; max-height: 450px; padding-bottom: 30px;">
+        <div class="redeem-card" onclick="openForm(1000)"><div><b>1,000 ⭐</b><br><small>Starter</small></div><div class="card-price">৳10</div></div>
+        <div class="redeem-card" onclick="openForm(5000)"><div class="hot-tag">HOT</div><div><b>5,000 ⭐</b><br><small>Bronze</small></div><div class="card-price">৳60</div></div>
+        <div class="redeem-card" onclick="openForm(25000)"><div><b>25,000 ⭐</b><br><small>Silver</small></div><div class="card-price">৳350</div></div>
+        <div class="redeem-card" onclick="openForm(100000)"><div><b>100,000 ⭐</b><br><small>Gold Master</small></div><div class="card-price">৳1800</div></div>
+    </div>
+    <button class="btn btn-back" onclick="hideRedeem()">ফিরে যান</button>
+</div>
+
+<div id="formPage" class="overlay hidden">
+    <div style="background:#1e293b; padding:25px; border-radius:25px; width:85%; border:2px solid var(--gold);">
+        <input type="number" id="userInput" placeholder="বিকাশ বা নগদ নম্বর">
+        <button class="btn btn-play" style="width: 100%;" onclick="finalSubmit()">কনফার্ম</button>
+        <button class="btn" style="background:#444; width:100px;" onclick="closeForm()">বন্ধ</button>
+    </div>
+</div>
+
+<div id="policyModal" class="modal hidden">
+    <div style="background:#fff; color:#000; padding:20px; border-radius:15px; font-family: sans-serif; font-size: 14px; line-height: 1.5;">
+        <h3 style="margin-top:0;">গোপনীয়তা ও শর্তাবলী</h3>
+        <p>১. এটি একটি বিনোদনমূলক অ্যাপ।</p>
+        <p style="color:red; font-weight:bold;">২. পেমেন্ট রিডিম সুবিধা শুধুমাত্র বাংলাদেশী ইউজারদের জন্য। ভারত (India) বা অন্য দেশ থেকে কোনো দাবি গ্রাহ্য হবে না।</p>
+        <p>৩. ভিপিএন ব্যবহার করলে পেমেন্ট বাতিল হতে পারে।</p>
+        <button onclick="closePolicy()" style="width:100%; padding:12px; background:#000; color:#fff; border:none; border-radius:5px; margin-top:10px;">সম্মতি দিচ্ছি</button>
+    </div>
+</div>
+
+<script>
+    let coins = parseInt(localStorage.getItem('coins')) || 0;
+    let stars = parseInt(localStorage.getItem('stars')) || 0;
+    let gameActive = false, items = [];
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    let basket = { x: canvas.width/2-60, w: 120, h: 50, y: canvas.height-140 };
+
+    function selectCurrency() { document.getElementById('currencyPage').classList.add('hidden'); document.getElementById('tutorialPage').classList.remove('hidden'); updateUI(); }
+    function closeTutorial() { document.getElementById('tutorialPage').classList.add('hidden'); document.getElementById('menu').classList.remove('hidden'); }
+    function showPolicy() { document.getElementById('policyModal').classList.remove('hidden'); }
+    function closePolicy() { document.getElementById('policyModal').classList.add('hidden'); }
+
+    // আসল বাঁশের খাঁচা আঁকা
+    function drawCage(x, y, w, h) {
+        ctx.fillStyle = "#8B4513"; ctx.beginPath(); ctx.roundRect(x, y, w, h, 15); ctx.fill();
+        ctx.strokeStyle = "#5D2E0A"; ctx.lineWidth = 2;
+        for (let i = x + 15; i < x + w; i += 18) { ctx.beginPath(); ctx.moveTo(i, y); ctx.lineTo(i, y + h); ctx.stroke(); }
+        for (let j = y + 10; j < y + h; j += 15) { ctx.beginPath(); ctx.moveTo(x, j); ctx.lineTo(x + w, j); ctx.stroke(); }
+        ctx.fillStyle = "#633311"; ctx.fillRect(x - 5, y, w + 10, 8);
+    }
+
+    // লাইভ পেমেন্ট ফিড (১টি করে আসবে)
+    setInterval(() => {
+        if(document.getElementById('redeemPage').classList.contains('hidden')) return;
+        const list = document.getElementById('payoutList');
+        const names = ["Siam", "Rakib", "Mitu", "Sumon", "Sarah"];
+        const country = Math.random() > 0.2 ? "🇧🇩" : "🇺🇸";
+        const val = country === "🇧🇩" ? "৳" + [10, 60, 350][Math.floor(Math.random()*3)] : "$" + (Math.random()*5).toFixed(2);
+        list.innerHTML = `<div class="payout-item"><span>${country} User: ${names[Math.floor(Math.random()*5)]}***</span><b style="color:var(--gold)">${val} Paid</b></div>`;
+    }, 3500);
+
+    function updateUI() {
+        document.getElementById('coins').innerText = coins.toLocaleString(); 
+        document.getElementById('stars').innerText = stars.toLocaleString();
+        localStorage.setItem('coins', coins); localStorage.setItem('stars', stars);
+    }
+
+    function startGame() { hideAll(); items = []; gameActive = true; spawn(); loop(); }
+    function hideAll() { document.querySelectorAll('.overlay').forEach(p => p.classList.add('hidden')); }
+
+    function spawn() {
+        if(!gameActive) return;
+        items.push({ x: Math.random()*(canvas.width-40)+20, y: -20, s: 6, t: Math.random()>0.85 ? 's':'g' });
+        setTimeout(spawn, 850);
+    }
+
+    function loop() {
+        if(!gameActive) return;
+        ctx.clearRect(0,0,canvas.width, canvas.height);
+        drawCage(basket.x, basket.y, basket.w, basket.h);
+        items.forEach((item, i) => {
+            item.y += item.s;
+            ctx.font="35px Arial";
+            ctx.fillText(item.t==='s'?'⭐':'🟡', item.x-17, item.y+15);
+            if(item.y > basket.y && item.y < basket.y+basket.h && item.x > basket.x && item.x < basket.x+basket.w) {
+                if(item.t==='s') stars++; else coins++;
+                items.splice(i, 1); updateUI();
+            }
+            if(item.y > canvas.height) { gameActive = false; showResult(); }
+        });
+        requestAnimationFrame(loop);
+    }
+
+    function showResult() {
+        hideAll();
+        document.getElementById('resScore').innerText = stars;
+        document.getElementById('resultPage').classList.remove('hidden');
+        const rain = document.getElementById('rainContainer'); rain.innerHTML = '';
+        for(let i=0; i<30; i++) {
+            let c = document.createElement('div'); c.className = 'f-coin';
+            c.innerText = '🟡'; c.style.left = Math.random()*100+'vw';
+            c.style.animationDelay = Math.random()*2+'s';
+            rain.appendChild(c);
+        }
+    }
+
+    canvas.addEventListener('touchmove', e => { 
+        e.preventDefault();
+        basket.x = e.touches[0].clientX - basket.w/2; 
+    }, {passive: false});
+
+    function showRedeem() { hideAll(); document.getElementById('redeemPage').classList.remove('hidden'); }
+    function hideRedeem() { document.getElementById('redeemPage').classList.add('hidden'); document.getElementById('menu').classList.remove('hidden'); }
+    function openForm(a) { if(stars>=a) document.getElementById('formPage').classList.remove('hidden'); else alert("নট এনাফ স্টার!"); }
+    function closeForm() { document.getElementById('formPage').classList.add('hidden'); }
+    
+    function finalSubmit() { 
+        const check = confirm("আপনি কি নিশ্চিত যে আপনি বাংলাদেশ থেকে খেলছেন? (ভারত থেকে পেমেন্ট হবে না)");
+        if(check) {
+            window.open(`https://wa.me/916295650647?text=Payment_Request_BD`); 
+            location.reload(); 
+        }
+    }
+    updateUI();
+</script>
+</body>
+</html>
