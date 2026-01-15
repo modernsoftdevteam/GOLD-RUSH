@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GOLD RUSH PRO</title>
+    <style>
+        :root { 
+            --gold: #FFD700; 
+            --bg: #0b0f1a; 
+            --card-bg: #161e2d;
+            --success: #00FF87; 
+            --diamond: #00d4ff;
+        }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; }
+        
+        .header { position: absolute; top: 0; width: 100%; height: 70px; background: rgba(0,0,0,0.9); display: flex; justify-content: space-around; align-items: center; z-index: 100; border-bottom: 2px solid #222; }
+        .stat-box { font-size: 22px; font-weight: 900; color: var(--gold); }
+        .diamond-box { color: var(--diamond); }
+
+        canvas { display: block; background: radial-gradient(circle, #1e293b 0%, #000 100%); }
+
+        .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.97); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 500; padding: 20px; text-align: center; }
+        
+        /* Withdraw Balance Header Section */
+        .balance-section {
+            background: linear-gradient(180deg, rgba(255,215,0,0.1) 0%, transparent 100%);
+            width: 100%; padding: 30px 0; border-radius: 0 0 50px 50px; margin-bottom: 20px;
+        }
+        .balance-display-flex { display: flex; justify-content: space-around; align-items: center; width: 100%; }
+        .balance-item { display: flex; flex-direction: column; align-items: center; }
+        .bal-icon { font-size: 50px; margin-bottom: 5px; filter: drop-shadow(0 0 10px rgba(255,215,0,0.3)); }
+        .total-stars { font-size: 35px; font-weight: 900; color: #fff; margin: 0; }
+        .bal-label { margin: 0; font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .redeem-container { width: 100%; max-height: 50vh; overflow-y: auto; }
+        
+        .redeem-card {
+            width: 90%; background: #161e2d; margin: 12px auto; padding: 25px 20px; 
+            border-radius: 20px; border: 1px solid #334155; display: flex; 
+            justify-content: space-between; align-items: center;
+        }
+        
+        .star-highlight { color: var(--gold); font-size: 24px; font-weight: 900; }
+        .card-price { color: var(--success); font-size: 30px; font-weight: 900; background: rgba(0,255,135,0.1); padding: 5px 15px; border-radius: 10px; }
+
+        .btn { padding: 20px; margin: 10px; border: none; border-radius: 20px; cursor: pointer; font-size: 22px; font-weight: bold; width: 300px; }
+        .btn-play { background: linear-gradient(to right, #2ed573, #1abc9c); color: white; }
+        .btn-back { background: transparent; color: #64748b; text-decoration: underline; border: none; margin-top: 15px; }
+
+        input { padding: 20px; width: 85%; border-radius: 20px; border: 2px solid #334155; margin: 15px 0; text-align: center; font-size: 24px; background: #0f172a; color: #fff; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="blockPage" class="overlay hidden" style="background: red; z-index: 1000;">
+    <h1>ACCOUNT BLOCKED</h1>
+    <p>সন্দেহজনক কার্যক্রমের জন্য আপনার আইডি ব্লক করা হয়েছে।</p>
+</div>
+
+<div class="header">
+    <div class="stat-box">💰 <span id="displayCoins">0</span></div>
+    <div class="stat-box">⭐ <span id="displayStars">0</span></div>
+    <div class="stat-box diamond-box">💎 <span id="displayDiamonds">0</span></div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="menu" class="overlay">
+    <h1 style="color:var(--gold); font-size: 40px; margin-bottom: 5px;">GOLD RUSH</h1>
+    <p id="userIdDisplay" style="color: #64748b; margin-bottom: 25px; font-size: 11px;"></p>
+    <button class="btn btn-play" onclick="startGame()">START GAME</button>
+    <button class="btn" style="background:#f39c12; color:white;" onclick="showRedeem()">WITHDRAW CASH</button>
+</div>
+
+<div id="resultPage" class="overlay hidden">
+    <h2 style="color:white">Match Over</h2>
+    <div style="font-size: 30px; color: var(--gold);">Collected ⭐: <span id="resStars">0</span></div>
+    <div style="font-size: 30px; color: #00FF87;">Collected 💰: <span id="resCoins">0</span></div>
+    <br>
+    <button class="btn btn-play" onclick="startGame()">PLAY AGAIN</button>
+    <button class="btn-back" onclick="showMenu()">GO TO MENU</button>
+</div>
+
+<div id="redeemPage" class="overlay hidden" style="justify-content: flex-start; padding: 0;">
+    <div class="balance-section">
+        <div class="balance-display-flex">
+            <div class="balance-item">
+                <span class="bal-icon">💰</span>
+                <p class="bal-label">Coins</p>
+                <h2 class="total-stars" id="redCoins">0</h2>
+            </div>
+            <div class="balance-item">
+                <span class="bal-icon">⭐</span>
+                <p class="bal-label">Stars</p>
+                <h2 class="total-stars" id="redStars">0</h2>
+            </div>
+        </div>
+    </div>
+    
+    <div class="redeem-container">
+        <div class="redeem-card" onclick="openForm(10000, 5, 'coins')"><div><span class="star-highlight">10,000 💰</span></div><div class="card-price">৳৫</div></div>
+        <div class="redeem-card" onclick="openForm(25000, 10, 'coins')"><div><span class="star-highlight">25,000 💰</span></div><div class="card-price">৳১০</div></div>
+        <div class="redeem-card" onclick="openForm(50000, 25, 'coins')"><div><span class="star-highlight">50,000 💰</span></div><div class="card-price">৳২৫</div></div>
+        <div class="redeem-card" onclick="openForm(100000, 55, 'coins')"><div><span class="star-highlight">100,000 💰</span></div><div class="card-price">৳৫৫</div></div>
+
+        <div class="redeem-card" onclick="openForm(1000, 10, 'stars')"><div><span class="star-highlight">1,000 ⭐</span></div><div class="card-price">৳১০</div></div>
+        <div class="redeem-card" onclick="openForm(5000, 60, 'stars')"><div><span class="star-highlight">5,000 ⭐</span></div><div class="card-price">৳৬০</div></div>
+        <div class="redeem-card" onclick="openForm(10000, 130, 'stars')"><div><span class="star-highlight">10,000 ⭐</span></div><div class="card-price">৳১৩০</div></div>
+        <div class="redeem-card" onclick="openForm(25000, 350, 'stars')"><div><span class="star-highlight">25,000 ⭐</span></div><div class="card-price">৳৩৫০</div></div>
+        <div class="redeem-card" onclick="openForm(30000, 420, 'stars')"><div><span class="star-highlight">30,000 ⭐</span></div><div class="card-price">৳৪২০</div></div>
+    </div>
+    <button class="btn-back" onclick="hideRedeem()">CLOSE</button>
+</div>
+
+<div id="formPage" class="overlay hidden">
+    <div style="background:var(--card-bg); padding:30px; border-radius:30px; width:85%; border:1px solid var(--gold);">
+        <h3 id="selectedPlanText">Withdraw</h3>
+        <input type="number" id="userInput" placeholder="বিকাশ বা নগদ নম্বর">
+        <button class="btn btn-play" style="width: 100%;" onclick="finalSubmit()">CONFIRM</button>
+        <button class="btn-back" onclick="closeForm()">CANCEL</button>
+    </div>
+</div>
+
+<script>
+    // --- Logic & Database ---
+    if(localStorage.getItem('isBlocked')) document.getElementById('blockPage').classList.remove('hidden');
+    let userId = localStorage.getItem('gameUserId') || 'GR-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+    localStorage.setItem('gameUserId', userId);
+    document.getElementById('userIdDisplay').innerText = "ID: " + userId;
+
+    let coins = parseInt(localStorage.getItem('coins')) || 0;
+    let stars = parseInt(localStorage.getItem('stars')) || 0;
+    let diamonds = parseInt(localStorage.getItem('diamonds')) || 0;
+
+    let gameActive = false, items = [];
+    let sessionStars = 0, sessionCoins = 0;
+    let currentSpeed = 7, spawnRate = 850, diffTimer;
+
+    function updateUI() {
+        document.getElementById('displayCoins').innerText = sessionCoins;
+        document.getElementById('displayStars').innerText = sessionStars;
+        document.getElementById('displayDiamonds').innerText = diamonds;
+        
+        localStorage.setItem('coins', coins);
+        localStorage.setItem('stars', stars);
+        localStorage.setItem('diamonds', diamonds);
+
+        document.getElementById('redCoins').innerText = coins.toLocaleString();
+        document.getElementById('redStars').innerText = stars.toLocaleString();
+    }
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    let basket = { x: canvas.width/2-60, w: 120, h: 50, y: canvas.height-140 };
+
+    function drawBasket(x, y, w, h) {
+        ctx.fillStyle = "#8B4513"; ctx.beginPath(); ctx.roundRect(x, y, w, h, 15); ctx.fill();
+        ctx.strokeStyle = "#5D2E0A"; ctx.lineWidth = 2;
+        for (let i = x + 15; i < x + w; i += 18) { ctx.beginPath(); ctx.moveTo(i, y); ctx.lineTo(i, y + h); ctx.stroke(); }
+        ctx.fillStyle = "#633311"; ctx.fillRect(x - 5, y, w + 10, 8);
+    }
+
+    function startGame() {
+        if(localStorage.getItem('isBlocked')) return;
+        hideAll(); items = []; sessionStars = 0; sessionCoins = 0;
+        currentSpeed = 7; spawnRate = 850;
+        gameActive = true;
+        updateUI();
+        increaseDifficulty();
+        spawn(); loop();
+    }
+
+    function increaseDifficulty() {
+        if(!gameActive) return;
+        diffTimer = setTimeout(() => {
+            if(currentSpeed < 23) currentSpeed += 0.8;
+            if(spawnRate > 300) spawnRate -= 50;
+            increaseDifficulty();
+        }, 10000);
+    }
+
+    function spawn() {
+        if(!gameActive) return;
+        let type = 'g';
+        let rand = Math.random();
+        if(rand > 0.88) type = 's';
+        else if(rand < 0.002) type = 'd'; 
+        items.push({ x: Math.random()*(canvas.width-40)+20, y: -20, s: currentSpeed, t: type });
+        setTimeout(spawn, spawnRate);
+    }
+
+    function loop() {
+        if(!gameActive) return;
+        ctx.clearRect(0,0,canvas.width, canvas.height);
+        drawBasket(basket.x, basket.y, basket.w, basket.h);
+        
+        items.forEach((item, i) => {
+            item.y += item.s;
+            ctx.font="35px Arial";
+            let icon = item.t==='s' ? '⭐' : (item.t==='d' ? '💎' : '🟡');
+            ctx.fillText(icon, item.x-17, item.y+15);
+
+            if(item.y < -200) { localStorage.setItem('isBlocked', 'true'); location.reload(); }
+
+            if(item.y > basket.y && item.y < basket.y+basket.h && item.x > basket.x && item.x < basket.x+basket.w) {
+                if(item.t === 's') { stars++; sessionStars++; }
+                else if(item.t === 'd') { diamonds++; }
+                else { coins++; sessionCoins++; }
+                items.splice(i, 1); updateUI();
+            }
+
+            if(item.y > canvas.height) {
+                if(diamonds > 0) { diamonds--; items.splice(i, 1); updateUI(); } 
+                else { gameActive = false; clearTimeout(diffTimer); showResult(); }
+            }
+        });
+        requestAnimationFrame(loop);
+    }
+
+    function showResult() { hideAll(); document.getElementById('resStars').innerText = sessionStars; document.getElementById('resCoins').innerText = sessionCoins; document.getElementById('resultPage').classList.remove('hidden'); updateUI(); }
+    function showMenu() { hideAll(); updateUI(); document.getElementById('menu').classList.remove('hidden'); }
+    function hideAll() { document.querySelectorAll('.overlay').forEach(p => p.classList.add('hidden')); }
+    function showRedeem() { updateUI(); hideAll(); document.getElementById('redeemPage').classList.remove('hidden'); }
+    function hideRedeem() { hideAll(); showMenu(); }
+
+    function openForm(amount, taka, type) {
+        let bal = (type === 'stars') ? stars : coins;
+        if(bal >= amount) {
+            document.getElementById('selectedPlanText').innerText = `${amount.toLocaleString()} ${type} = ৳${taka}`;
+            document.getElementById('formPage').classList.remove('hidden');
+            window.currentWithdraw = { amount, type };
+        } else alert("পর্যাপ্ত ব্যালেন্স নেই!");
+    }
+
+    function finalSubmit() {
+        const num = document.getElementById('userInput').value;
+        if(num.length < 10) return alert("সঠিক নম্বর দিন");
+        let {amount, type} = window.currentWithdraw;
+        if(type === 'stars') stars -= amount; else coins -= amount;
+        updateUI();
+        window.open(`https://wa.me/916295650647?text=ID:${userId}%20Withdraw:${amount}%20${type}%20to:${num}`);
+        location.reload();
+    }
+
+    canvas.addEventListener('touchmove', e => { e.preventDefault(); basket.x = e.touches[0].clientX - basket.w/2; }, {passive: false});
+    updateUI();
+</script>
+</body>
+</html>
