@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GOLD RUSH PRO - Final Edition</title>
+    
+    <script type='text/javascript' src='//pl25442436.highrevenuegate.com/28/43/87/28438721.js'></script>
+
+    <script type='text/javascript' src='//pl25442539.highrevenuegate.com/28/43/87/28438759.js'></script>
+
+    <style>
+        :root { --gold: #FFD700; --bg: #0b0f1a; --card-bg: #161e2d; --success: #00FF87; --diamond: #00d4ff; }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; }
+        .header { position: absolute; top: 0; width: 100%; height: 70px; background: rgba(0,0,0,0.9); display: flex; justify-content: space-around; align-items: center; z-index: 100; border-bottom: 2px solid #222; }
+        .stat-box { font-size: 22px; font-weight: 900; color: var(--gold); }
+        .diamond-box { color: var(--diamond); }
+        canvas { display: block; background: radial-gradient(circle, #1e293b 0%, #000 100%); }
+        .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.97); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 500; padding: 20px; text-align: center; }
+        .btn { padding: 18px; margin: 10px; border: none; border-radius: 20px; cursor: pointer; font-size: 20px; font-weight: bold; width: 280px; }
+        .btn-play { background: linear-gradient(to right, #2ed573, #1abc9c); color: white; }
+        .claim-btn { background: linear-gradient(180deg, #FFD700, #FFA500); border:none; padding:15px; border-radius:30px; font-weight:bold; cursor:pointer; width:260px; color: black; margin: 15px 0; font-size: 16px; box-shadow: 0 0 15px rgba(255, 215, 0, 0.4); }
+        .ad-container { width: 100%; max-width: 320px; min-height: 50px; background: rgba(255,255,255,0.05); margin: 10px 0; border-radius: 10px; overflow: hidden; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="blockPage" class="overlay hidden" style="background: black; z-index: 1000; color: red;">
+    <h1 style="border: 5px solid red; padding: 20px;">ACCESS DENIED</h1>
+    <p style="color: white;">Suspicious activity detected. Your IP has been blacklisted.</p>
+</div>
+
+<div class="header">
+    <div class="stat-box">💰 <span id="displayCoins">0</span></div>
+    <div class="stat-box">⭐ <span id="displayStars">0</span></div>
+    <div class="stat-box diamond-box">💎 <span id="displayDiamonds">0</span></div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="menu" class="overlay">
+    <h1 style="color:var(--gold); font-size: 40px; margin-bottom: 5px;">GOLD RUSH</h1>
+    <p id="userIdDisplay" style="color: #64748b; font-size: 11px; margin-bottom: 20px;"></p>
+    
+    <div class="ad-container">
+        <script type="text/javascript">
+            atOptions = { 'key' : '28438765', 'format' : 'iframe', 'height' : 50, 'width' : 320, 'params' : {} };
+        </script>
+        <script type="text/javascript" src="//www.highrevenuegate.com/28438765/invoke.js"></script>
+    </div>
+
+    <button class="btn btn-play" onclick="startGame()">START GAME</button>
+</div>
+
+<div id="resultPage" class="overlay hidden">
+    <h2 style="color:white">Match Over</h2>
+    <div style="font-size: 25px; color: var(--gold);">⭐ <span id="resStars">0</span> | 💰 <span id="resCoins">0</span></div>
+    
+    <div id="reward-area" style="width: 100%; min-height: 100px;"></div>
+
+    <div class="ad-container">
+        <script type="text/javascript">
+            atOptions = { 'key' : '28438765', 'format' : 'iframe', 'height' : 50, 'width' : 320, 'params' : {} };
+        </script>
+        <script type="text/javascript" src="//www.highrevenuegate.com/28438765/invoke.js"></script>
+    </div>
+
+    <button class="btn btn-play" onclick="startGame()">PLAY AGAIN</button>
+</div>
+
+<script>
+    // কনফিগারেশন
+    const SMART_LINK = "https://www.highrevenuegate.com/v8t5f4z9v?key=3f6b4d3f6b4d3f6b4d3f6b4d3f6b4d3f"; // ID: 28438780
+    const COIN_LIMIT = 5000; 
+    const LOCK_TIME = 24 * 60 * 60 * 1000; 
+
+    if(localStorage.getItem('isBlocked')) { triggerHardBlock(); }
+    let userId = localStorage.getItem('gameUserId') || 'GR-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+    localStorage.setItem('gameUserId', userId);
+    document.getElementById('userIdDisplay').innerText = "ID: " + userId;
+
+    let coins = parseInt(localStorage.getItem('coins')) || 0;
+    let stars = parseInt(localStorage.getItem('stars')) || 0;
+    let diamonds = parseInt(localStorage.getItem('diamonds')) || 0;
+    let gameActive = false, items = [], sessionStars = 0, sessionCoins = 0;
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    let basket = { x: canvas.width/2-60, w: 120, h: 50, y: canvas.height-140 };
+
+    function updateUI() {
+        document.getElementById('displayCoins').innerText = sessionCoins;
+        document.getElementById('displayStars').innerText = sessionStars;
+        document.getElementById('displayDiamonds').innerText = diamonds;
+        localStorage.setItem('coins', coins);
+        localStorage.setItem('stars', stars);
+        localStorage.setItem('diamonds', diamonds);
+    }
+
+    function startGame() {
+        if(localStorage.getItem('isBlocked')) return;
+        hideAll(); items = []; sessionStars = 0; sessionCoins = 0;
+        gameActive = true; updateUI(); spawn(); loop();
+    }
+
+    function spawn() {
+        if(!gameActive) return;
+        let type = (Math.random() > 0.88) ? 's' : (Math.random() < 0.006 ? 'd' : 'g');
+        items.push({ x: Math.random()*(canvas.width-40)+20, y: -20, s: 7.5, t: type });
+        setTimeout(spawn, 800);
+    }
+
+    function loop() {
+        if(!gameActive) return;
+        ctx.clearRect(0,0,canvas.width, canvas.height);
+        ctx.fillStyle = "#8B4513";
+        ctx.beginPath(); ctx.roundRect(basket.x, basket.y, basket.w, basket.h, 10); ctx.fill();
+
+        items.forEach((item, i) => {
+            item.y += item.s;
+            ctx.font="35px Arial";
+            ctx.fillText(item.t==='s'?'⭐':(item.t==='d'?'💎':'🟡'), item.x-17, item.y);
+            if(item.y > basket.y && item.y < basket.y+basket.h && item.x > basket.x && item.x < basket.x+basket.w) {
+                if(item.t === 's') { stars++; sessionStars++; }
+                else if(item.t === 'd') { diamonds++; }
+                else { coins++; sessionCoins++; }
+                items.splice(i, 1); updateUI();
+            }
+            if(item.y > canvas.height) { gameActive = false; showResult(); }
+        });
+        requestAnimationFrame(loop);
+    }
+
+    function triggerHardBlock() {
+        localStorage.setItem('isBlocked', 'true');
+        document.body.innerHTML = `<div style="background:black;color:red;height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;font-family:monospace;"><h1 style="border:5px solid red;padding:15px;">ACCESS DENIED</h1><p>আপনার অ্যাকাউন্ট ব্লক করা হয়েছে।</p></div>`;
+        window.stop();
+    }
+
+    function showResult() {
+        if(sessionCoins > COIN_LIMIT) { triggerHardBlock(); return; }
+        hideAll();
+        document.getElementById('resStars').innerText = sessionStars;
+        document.getElementById('resCoins').innerText = sessionCoins;
+        document.getElementById('resultPage').classList.remove('hidden');
+        renderRewardUI();
+    }
+
+    function renderRewardUI() {
+        const area = document.getElementById('reward-area');
+        const last = localStorage.getItem('last_claim');
+        const now = Date.now();
+        if(!last || (now - last >= LOCK_TIME)) {
+            area.innerHTML = `<button class="claim-btn" onclick="handleClaim()">🎁 ক্লেইম ডায়মন্ড (Reward)</button>`;
+        } else {
+            area.innerHTML = `<div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:15px; border:1px dashed #444;"><p style="color:#64748b; font-size:12px;">Next Bonus In:</p><div id="timer-display" style="color:var(--gold); font-weight:bold; font-size:18px;"></div></div>`;
+            startTimer(last);
+        }
+    }
+
+    function startTimer(last) {
+        const clock = setInterval(() => {
+            const diff = (parseInt(last) + LOCK_TIME) - Date.now();
+            if(diff <= 0) { clearInterval(clock); renderRewardUI(); }
+            else {
+                const h = Math.floor(diff / 3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
+                if(document.getElementById('timer-display')) document.getElementById('timer-display').innerText = `${h}h ${m}m ${s}s`;
+            }
+        }, 1000);
+    }
+
+    function handleClaim() {
+        window.open(SMART_LINK, '_blank');
+        let d = (Math.random()*100 < 70) ? Math.floor(Math.random()*4)+7 : Math.floor(Math.random()*6)+1;
+        diamonds += d;
+        alert(`অভিনন্দন! আপনি ${d}টি ডায়মন্ড পেলেন।`);
+        localStorage.setItem('last_claim', Date.now());
+        updateUI(); renderRewardUI();
+    }
+
+    function hideAll() { document.querySelectorAll('.overlay').forEach(p => p.classList.add('hidden')); }
+    canvas.addEventListener('touchmove', e => { basket.x = e.touches[0].clientX - basket.w/2; e.preventDefault(); }, {passive: false});
+    updateUI();
+</script>
+</body>
+</html>
